@@ -1,0 +1,786 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+```{r}
+library(readr)
+library(zoo)
+library(signal)
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+library(timetk)
+library(ggsignif)
+library(impute)
+library(FactoMineR)
+library(GGally)
+library(factoextra)
+library(gridExtra)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+#Task 4
+```
+
+
+```{r}
+event_times=scan("Data_Assign22/event_times.txt")
+```
+
+```{r}
+plot(event_times,type = 'l')
+```
+
+
+```{r}
+wait_times=diff(event_times) #Create vector of difference of consecutive elements
+```
+
+```{r}
+hist(wait_times,freq = F,ylim = c(0,2)) #Create histogram
+lines(density(wait_times),lwd=2,col='red')#Create density plot overlaid on the histogram
+```
+
+```{r}
+theta1=seq(0,4,.1)#Create vectors with possible values for the parameter
+theta2=seq(0,70,.1)
+```
+
+```{r}
+alpha=5#Create parameters for the model 
+lambda=15
+```
+
+
+```{r}
+prior=dgamma(theta1,shape = alpha,rate = lambda)#Draw the prior distribution 
+```
+
+```{r}
+plot(theta1,prior,type='l',col='orange') #Plot Prior distribution
+abline(v=qgamma(c(0.025,0.975),alpha,lambda),col='black',lty=2) #Add confidence interval
+```
+
+
+```{r}
+likelihood=dgamma(y,n,theta1) #Create likelihood distribution 
+names(likelihood)=theta1
+```
+
+
+```{r}
+# plot(x=names(likelihood),y=likelihood,type = 'l',lwd=0.1,lty=2,xaxt='n',xlab = 'theta',ylab = 'likelihood') 
+# axis(1,at=seq(0,max(theta1),1))
+```
+
+```{r}
+plot(x=names(likelihood),y=likelihood,type = 'l',lwd=0.1,lty=1,xaxt='n',xlab = 'theta',ylab = 'likelihood',xlim = c(0,4)) #Plot the likelihood distribution
+axis(1,at=seq(0,4,.5),tick = T,lwd = 1,labels = F,tck=-0.02)
+text(x=seq(0,4,1),par("usr")[3],pos = 1,labels=c(0:4),xpd=T) #Customise X-axis ticks 
+abline(v=c(1.6,1.7,1.8,1.9,2),lty='dashed',col='red') #Add lines to precisely mark the x-axis values 
+```
+
+
+```{r}
+n=length(wait_times)
+y=sum(wait_times)
+```
+
+
+```{r}
+posterior=dgamma(theta1,alpha+n,lambda+y) #Plot posterior distribution with update parameters 
+```
+
+```{r}
+#Function to plot Prior,Likelihood and Posterior distributions on the same plot
+plot_continuous_posterior <- function(th, pr, like, post) { 
+  ymax = max(c(pr, post)) 
+  scaled_like = like * ymax / max(like) 
+  plot(th, pr, type='l', col='orange', xlim= range(th), ylim=c(0,      
+ymax), ylab='',xlab='') 
+  par(new=T) 
+  plot(th, scaled_like, type='l', col='skyblue', xlim=range(th), 
+ylim=c(0, ymax), ylab='',xlab='') 
+  par(new=T) 
+  plot(th, post, type='l', col='seagreen', xlim=range(th), 
+ylim=c(0, ymax), ylab='Density',xlab='theta') 
+  legend("topright", c("prior", "scaled likelihood", "posterior"), 
+lty=1, col=c("orange", "skyblue", "seagreen"),cex=.6) 
+}
+```
+
+```{r} 
+plot_continuous_posterior(theta1,prior,likelihood,posterior)#Plot the Prior, Likelihood and Posterior distributions
+abline(v=qgamma(c(0.025,0.975),alpha+n,lambda+y),lty='dashed')#Add confidence interval for the Posterior distribution
+```
+
+
+```{r}
+#Task 1 with different prior parameters
+```
+
+```{r}
+alpha=15#Create parameters for the model 
+lambda=.5
+```
+
+
+```{r}
+prior2=dgamma(theta2,shape = alpha,rate = lambda)#Draw the prior distribution 
+```
+
+```{r}
+plot(theta2,prior,type='l',col='orange')
+abline(v=qgamma(c(0.025,0.975),alpha,lambda),col='black',lty=2)
+```
+
+```{r}
+likelihood=dgamma(y,n,theta1) #Create the likelihood distribution
+names(likelihood)=theta1 #Add theta values to the likelihood vector values 
+```
+
+```{r}
+plot(x=names(likelihood),y=likelihood,type = 'l',lwd=0.1,lty=2,xaxt='n',xlab = 'theta',ylab = 'likelihood') #Plot the likelihood distribution
+axis(1,at=seq(0,max(theta1),1)) 
+```
+
+```{r}
+posterior=dgamma(theta1,alpha+n,lambda+y)
+```
+
+```{r}
+plot_continuous_posterior(theta1,prior,likelihood,posterior)#Plot the Prior, Likelihood and Posterior distributions
+abline(v=qgamma(c(0.025,0.975),alpha+n,lambda+y),lty='dashed')#Add confidence interval for the Posterior distribution
+```
+
+```{r}
+plot(theta1,posterior,type='l',col='seagreen',xlim = c(0,5))#Separately plot posterior distribution as it is difficult to observe it given the shape and spead of the prior
+```
+
+**Task 4 ends**
+
+
+**Task 3**
+
+```{r}
+temp_data <- read.csv("~/R/Cranfield_R/Assignment/Data_Assign22/Mean_Central_Eng_Temp.csv") #Load the temperature data
+```
+
+```{r}
+tail(temp_data,1) #Check the last row of the data
+```
+
+
+```{r}
+temp_2=head(temp_data,-1) #Remove the last row (Year 2022) from the data as it appears to be anomalous 
+```
+
+
+```{r}
+plot(x=temp_2$Year,temp_2$Annual,type='l',main = 'Mean Central England Tempratures (Celcius)',xlab = 'Temprature (c)',ylab = 'Years',)#Last element had to be removed because it is in invalid value
+```
+
+```{r}
+ma10=rollmean(temp_2$Annual,k = 10)#Create the vector of moving average values for the Annual temperature data
+ma10=c(rep(NA,9),ma10) #Pad vector with NAs to ensure it can be appended to dataframe
+temp_2$moving_average=ma10 #Add vector as column to dataframe
+```
+
+```{r}
+#ggplot(data = temp_2,aes(x=Year,y=Annual))+geom_line(color='red')+geom_smooth(method = 'loess',span=0.05)+geom_line(aes(x=Year,y=moving_average))
+```
+
+```{r}
+temp_2$smooth_10=smooth_vec(temp_2$Annual,period = 10)#Create smoothed Annual temperature data and append it to dataframe
+```
+
+```{r}
+#Create smoothed Annual temperature data with span instead of period parameter and append it to dataframe
+temp_2$smooth_span_0.1=smooth_vec(temp_2$Annual,span = 0.1) 
+temp_2$smooth_span_.05=smooth_vec(temp_2$Annual,span = 0.05) 
+```
+
+
+```{r}
+#Create manual mapping for the legend for future plots
+legend_content<-c("Raw", "Moving Average wsize= 10", "Smooth_vec_wsize=10","Smooth_vec_spansize=0.1","Smooth_vec_spansize=0.05")
+legend_colors<-c("darkgrey", "blue", "red",'darkgreen','purple')
+```
+
+
+```{r}
+#Plot the raw data, moving average and smoothed data with different parameters on the same plot to observe the closeness and fit of the curves
+ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Annual,color=legend_content[1]),alpha=.3,size=.5,linetype='blank')+geom_line(aes(y=moving_average,color=legend_content[2]),alpha=.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_10,color=legend_content[3]),alpha=0.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_span_0.1,col=legend_content[4]),alpha=.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_span_.05,col=legend_content[5]),alpha=.4,size=1,linetype='longdash')+theme_bw(base_size = 11)+theme(panel.grid = element_blank())+scale_color_manual(name='Legend',breaks = legend_content,values = legend_colors)
+```
+
+```{r}
+#Plot only the raw data and smoothed data(with span parameter) on the same plot
+ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Annual,color=legend_content[1]),alpha=.3,size=.5,linetype='solid',alpha=.5)+geom_line(aes(y=moving_average,color=legend_content[2]),alpha=1,size=1,linetype='solid')+geom_line(aes(y=smooth_span_0.1,color=legend_content[4]),alpha=0.4,size=1,linetype='longdash')+theme_bw(base_size = 11)+geom_line(aes(y=smooth_span_.05,col=legend_content[5]),alpha=.4,size=1,linetype='longdash')+theme(panel.grid = element_blank())+scale_color_manual(name='Legend',breaks = legend_content,values = legend_colors)
+```
+
+
+```{r}
+#Create seasonal data variables. This was accomplished using the mean for the three months of a particular season for each year
+temp_2=temp_2%>%mutate(Winter=temp_2%>%select(Nov,Dec,Jan)%>%rowMeans(),Spring=temp_2%>%select(Feb,Mar,Apr)%>%rowMeans(),Summer=temp_2%>%select(May,Jun,Jul)%>%rowMeans(),Autumn=temp_2%>%select(Aug,Sep,Oct)%>%rowMeans())
+```
+
+```{r} 
+#Create smoothed data for the Winter variable.
+temp_2=temp_2%>%mutate(Winter_smooth=smooth_vec(Winter,span = 0.1))
+```
+
+```{r}
+#Create smoothed data for the Spring variable.
+temp_2=temp_2%>%mutate(Spring_smooth=smooth_vec(Spring,span = 0.1))
+```
+
+```{r}
+#Create smoothed data for the Summer variable.
+temp_2=temp_2%>%mutate(Summer_smooth=smooth_vec(Summer,span = 0.1))
+```
+
+```{r}
+#Create smoothed data for the Autumn variable.
+temp_2=temp_2%>%mutate(Autumn_smooth=smooth_vec(Autumn,span = 0.1))
+```
+
+
+```{r}
+#Round the required Temperature data columns to three places after decimal point
+temp_2=temp_2%>%mutate_at(vars(Winter:Autumn_smooth),~round(.,3))
+```
+
+```{r}
+#ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Annual,color=legend_content[1]),alpha=.5,size=.5,linetype='solid')+geom_line(aes(y=moving_average,color=legend_content[2]),alpha=.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_10,color=legend_content[3]),alpha=0.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_span_0.1,col=legend_content[4]),alpha=.4,size=1,linetype='longdash')+geom_line(aes(y=smooth_span_.05,col=legend_content[5]),alpha=.4,size=1,linetype='longdash')+theme_bw(base_size = 11)+theme(panel.grid = element_blank())+scale_color_manual(name='Legend',breaks = legend_content,values = legend_colors)
+```
+
+
+```{r}
+#Create plot with raw data and smoothed data for the Winter variable
+Winter=ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Winter,color=legend_content[1]),alpha=.3,size=.5,linetype='solid')+geom_line(aes(y=Winter_smooth,color=legend_content[4]),alpha=1,size=1,linetype='longdash')+scale_color_manual(name='Legend',breaks=legend_content,values = legend_colors)+scale_x_continuous(breaks=seq(1650,2021,50))
+```   
+
+```{r}
+#Create plot with raw data and smoothed data for the Spring variable
+Spring=ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Spring,color=legend_content[1]),alpha=.3,size=.5,linetype='solid')+geom_line(aes(y=Spring_smooth,color=legend_content[4]),alpha=1,size=1,linetype='longdash')+scale_color_manual(name='Legend',breaks=legend_content,values = legend_colors)+scale_x_continuous(breaks=seq(1650,2021,50))
+```
+
+```{r}
+#Create plot with raw data and smoothed data for the Summer variable
+Summer=ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Summer,color=legend_content[1]),alpha=.3,size=.5,linetype='solid')+geom_line(aes(y=Summer_smooth,color=legend_content[4]),alpha=1,size=1,linetype='longdash')+scale_color_manual(name='Legend',breaks=legend_content,values = legend_colors)+scale_x_continuous(breaks=seq(1650,2021,50))
+```
+
+```{r}
+#Create plot with raw data and smoothed data for the Autumn variable
+Autumn=ggplot(data=temp_2,aes(x=Year))+geom_line(aes(y=Autumn,color=legend_content[1]),alpha=.3,size=.5,linetype='solid')+geom_line(aes(y=Autumn_smooth,color=legend_content[4]),alpha=1,size=1,linetype='longdash')+scale_color_manual(name='Legend',breaks=legend_content,values = legend_colors)+scale_x_continuous(breaks=seq(1650,2021,50))
+```
+
+```{r}
+#Arrange the 4 seasonal plots onto one panel
+grid.arrange(plot(Winter),plot(Spring),plot(Summer),plot(Autumn),ncol=2,nrow=2)
+```
+
+
+```{r}
+#Calculate the mean of the Annual temperature from 1960-1990
+mean_to_subtract=temp_2%>%filter(Year %in% c(1960:1990))%>%select(Annual)%>%unlist()%>%mean()
+```
+
+```{r}
+#Create new column named Diff to store the 'normalized' temperature data
+temp_2=temp_2%>%mutate(Diff=Annual-mean_to_subtract)
+#Create a sign variable to allow for representation of position against the reference temperature
+temp_2=temp_2%>%mutate(sign=sign(Diff))
+#https://climate.copernicus.eu/new-decade-brings-reference-period-change-climate-data- The reference temprature period as advocated for by the WMO
+```
+
+```{r}
+#Plot the normalized temperature variables against the Years. Further plot the smoothed normalized temperature curves to observe the long-term trend 
+ggplot(temp_2,aes(x=Year))+geom_point(aes(y=Diff,color=sign))+scale_color_gradient(low = 'blue',high='red',guide = 'none')+geom_line(aes(y=Diff),color='grey',lintype='dashed')+geom_smooth(aes(y=Diff),method = 'loess',span=0.1,color='black',se=F,alpha=.7)+geom_smooth(aes(y=Diff),color='green',span=1,se=F)+geom_vline(xintercept = c(1960,1991),linetype='dashed',alpha=.8,size=1,color='purple')+geom_hline(yintercept = 0,linetype='dashed',alpha=.5,size=1)
+```
+
+
+**Task 3 end**
+
+
+
+<!-- ```{r} -->
+<!-- g=ggplot(data = temp_2,aes(x=Year,y=Annual))+geom_line(color='blue',alpha=.3,size=.3)+geom_line(aes(x=Year,y=moving_average),size=.5,alpha=.4,color='black') -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- pal= brewer.pal(5, "YlOrRd") -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- legend_content<-as.character(seq(0.1,1,0.2)) -->
+<!-- legend_colors<-pal -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- y=1 -->
+<!-- for (i in seq(0.1,1,0.2)){ -->
+<!--   g=g+geom_smooth(method = 'loess',span=i,color=legend_colors[y],se = F,alpha=0.5,size=.5) -->
+<!--   y=y+1} -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- plot(g) -->
+<!-- ``` -->
+
+**Task1**
+
+```{r}
+ASP=data.frame(read.csv('Data_Assign22/A_CS.csv')) #Read data
+```
+
+```{r}
+ASP$na=rowSums(is.na(ASP)) 
+#Create rowSums to check for missing data in the dataset
+```
+
+```{r}
+#Some missing data was found therefore imputation was applied
+ASP_impute=ASP
+ASP_impute[,c(3:12)]=impute.knn(as.matrix(ASP_impute[,c(3:12)]),k = 3)$data# Apply KNN imputation to the numeric variables
+#Convert Time and Treatment variables to factor
+ASP_impute=ASP_impute%>%mutate_at('Time',~as.factor(.))
+ASP_impute=ASP_impute%>%mutate_at('Treatment',~as.factor(.))
+```
+
+```{r}
+summary(ASP_impute)
+```
+
+```{r}
+#Create exploratory plots to analyse the pairwise comparisons between the metabolite variables.
+pairs(~ABA+DPA+PA+X7OH_ABA,col=factor(ASP_impute$Treatment),data = ASP_impute,pch=ifelse(ASP_impute$Time==8,1,2),oma=c(4,4,4,16),cex=.5)
+par(xpd=T)
+legend("bottomright", fill = unique(factor(ASP_impute$Treatment)), legend = c( levels(factor(ASP_impute$Treatment))))
+#DPA,PA,X7OH_ABA seem to correlate well with each other and this also follows scientific logic. Furthermore, there does seem to be a segregation of groups between the AIR(control) and the DCA (treatment)
+```
+
+```{r}
+#Create exploratory plots to analyse the pairwise comparisons between the metabolite variables.
+ggpairs(ASP_impute,columns = c('ABA','DPA','PA','X7OH_ABA'),mapping = aes(color=factor(Treatment),alpha=.5),upper=list(continuous=wrap('cor',size=2.5)))+theme_bw()
+```
+
+```{r}
+#Create exploratory plots to analyse the pairwise comparisons between the metabolite variables.
+ggpairs(ASP_impute,columns = c('ABA',"DPA","PA","X7OH_ABA",'Time'),mapping=aes(color=Treatment,alpha=.5),upper=list(continuous=wrap('cor',size=2.5),combo='box_no_facet'),lower = list(continuous = "points", combo = "dot_no_facet"),diag = list(continuous='densityDiag'))+theme_bw()
+```
+
+
+```{r}
+ggpairs(ASP_impute,columns = c('ABA','DPA','PA','X7OH_ABA'),mapping = aes(color=factor(Time),alpha=.5),upper=list(continuous=wrap('cor',size=2.5)))+theme_bw()
+```
+
+```{r}
+#Create Exploratory plots for the Sugars and Total Soluble Solid volumes to look at the distribution and correlation between the variables
+ggpairs(ASP_impute,columns = c('Glucose',"Fructose","Sucrose","TSS",'Time'),mapping=aes(color=Treatment,alpha=.5),upper=list(continuous=wrap('cor',size=2.5),combo='box_no_facet'),lower = list(continuous = "points", combo = "dot_no_facet"),diag = list(continuous='densityDiag'))+theme_bw() #Stronger correlations are observed in the metabolites than the nonstructural carbs and the total solids. Some segregation in the density plot is observed for between the treatment types at time =28
+```
+
+```{r}
+ggpairs(ASP_impute,columns = c('Glucose',"Fructose","Sucrose","TSS",'Time'),mapping=aes(color=Treatment,alpha=.5),upper=list(continuous=wrap('cor',size=2.5),combo='box_no_facet'),lower = list(continuous = "bar", combo = "dot_no_facet"),diag = list(continuous='densityDiag'))+theme_bw()
+```
+
+
+```{r}
+ggplot(data = ASP_impute,aes(x=X7OH_ABA))+geom_histogram(aes(y=..density..,color=Treatment),binwidth =20,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()#Data appears bimodal and does not appear to be normal.Data not faceted to include more points per histogram
+```
+
+```{r}
+ggplot(data = ASP_impute,aes(x=X7OH_ABA))+geom_histogram(aes(y=..density..,color=Treatment),binwidth =10,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()+facet_wrap(Time~.)
+```
+
+```{r}
+ggplot(data = ASP_impute,aes(x=ABA))+geom_histogram(aes(y=..density..,color=Treatment),binwidth =400,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()+facet_wrap(Time~.) #Bimodality is being observed here as well
+```
+```{r}
+ggplot(data = ASP_impute,aes(x=DPA))+geom_histogram(aes(y=..density..,color=Treatment),bins = 6,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density() #Metabolite variables do not seem to be normally distributed
+```
+```{r}
+ggplot(data = ASP_impute,aes(x=PA))+geom_histogram(aes(y=..density..,color=Treatment),bins = 6,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density() # A lot of the density is overalpping between the points,however when looking at the correlation matrix, data seemed to be segregating better. 
+```
+```{r}
+ggplot(data = ASP_impute,aes(x=Fructose))+geom_histogram(aes(y=..density..,color=Treatment),bins = 6,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()+facet_wrap(Time~.) #Data appears to be more normal,especially when faceted for the Time effect
+```
+
+```{r}
+#Create function to create histograms for inputted variables
+hist_func=function(col_name){
+  col_name=as.symbol(col_name) #Convert string type input into a name variable
+  plot=ggplot(data = ASP_impute,aes(x=!!col_name))+geom_histogram(aes(y=..density..,color=Treatment),bins = 6,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()+theme(axis.title.x = element_text(size=15))
+  plot(plot)
+}
+```
+
+```{r}
+#Create function to create faceted histograms for inputted variables
+hist_func_facet=function(col_name){
+  col_name=as.symbol(col_name) #Convert string type input into a name variable
+  plot=ggplot(data = ASP_impute,aes(x=!!col_name))+geom_histogram(aes(y=..density..,color=Treatment),bins = 6,alpha=.5,fill=NA)+geom_density(alpha=.2, aes(fill=Treatment),lwd=.1,linetype=2)+geom_density()+facet_wrap(Time~.)
+  plot(plot)
+}
+```
+
+
+```{r}
+hist_func('Glucose')
+```
+
+```{r}
+hist_func_facet('Glucose')
+```
+
+
+```{r}
+hist_func('Sucrose')
+```
+
+```{r}
+hist_func_facet('Sucrose')
+```
+
+```{r}
+hist_func('TSS')
+```
+
+```{r}
+#Create faceted histograms for the metabolite variables on the same panel
+grid.arrange(hist_func('ABA'),hist_func('PA'),hist_func('DPA'),hist_func('X7OH_ABA'),nrow=2,ncol=2)
+```
+
+```{r}
+#Create faceted histograms (by Time) for the metabolite variables on the same panel
+grid.arrange(hist_func_facet('ABA'),hist_func_facet('PA'),hist_func_facet('DPA'),hist_func_facet('X7OH_ABA'),nrow=2,ncol=2)
+```
+
+
+```{r}
+#Create new dataframe with columns for sum of Sugar and sum of metabolites 
+ASPext=ASP_impute%>%mutate(sum_sugar=ASP_impute%>%select(Fructose,Glucose,Sucrose)%>%rowSums(),ABA_metab=ASP_impute%>%select(ABA,DPA,PA,X7OH_ABA)%>%rowSums())
+```
+
+```{r}
+#Create functions to plot boxplots for the combination of explanatory variables (total of four groups)
+box_plot_func=function(variable){
+  variable=as.symbol(variable)
+  plt=ggplot(ASPext,aes(x=!!variable))+geom_boxplot(aes(color=Treatment))+facet_wrap(Time~.)+theme(axis.title.x = element_text(size=15),axis.text.x = element_text(size=8))
+  plot(plt)}
+```
+
+```{r}
+box_plot_func('ABA_metab')
+```
+
+```{r}
+box_plot_func('sum_sugar')
+```
+
+```{r}
+box_plot_func('TSS') # An outlier was found on the 28 week timepoint in the DCA Treatment
+```
+
+```{r}
+box_plot_func('Moisture.loss')
+#Multiple outliers were found in the 28 week timepoint for both the treatment and control groups.
+```
+
+```{r}
+#Create boxplots for the four variables requested on the same panel
+grid.arrange(box_plot_func('ABA_metab'),box_plot_func('sum_sugar'),box_plot_func('TSS'),box_plot_func('Moisture.loss'))
+```
+
+
+```{r}
+#Create two way ANOVA tests for the four variables requested
+anova_sugar=aov(sum_sugar~Treatment+Time+Treatment*Time,data = ASPext)
+anova_metab=aov(ABA_metab~Treatment+Time+Treatment*Time,data = ASPext)
+anova_TSS=aov(TSS~Treatment+Time+Treatment*Time,data = ASPext)
+anova_moisture=aov(Moisture.loss~Treatment+Time+Treatment*Time,data = ASPext)
+```
+
+```{r}
+#For the sugar variable: Treatment, time and the interaction all turn out to be significant at the 0.01 level or lower.
+#For the metab variable, Treatment, time and interaction are highly significant variables
+#For the TSS variable, only the Time variable was significant among the independent variables tested.
+#For the Moisture.loss variable both the variables and their interactions wer e highly significant 
+```
+
+```{r}
+#Run TukeyHSD test on each of the ANOVA objects
+```
+
+```{r}
+TukeyHSD(anova_sugar) 
+# No treatment effect was observed at day 8, DCA was not able to prevent change in cumulative sugar levels between day 8 and day 28.Significant treatment effect at day 28 between treatment and control and the difference was positive(higher cumulative sugar levels)
+```
+
+```{r}
+TukeyHSD(anova_metab) 
+#Even at day 8, the treatment was able to affect the metabolite concentration strongly. Same at day 28. Although not significant, metabolite concentration was lower at day 28 in the Treatment group compared to day 8 in the control group
+```
+
+```{r}
+TukeyHSD(anova_TSS)
+#Treatment is not able to affect the TSS volume at any of the timepoints. However, there is a significant time effect - as highlighted by the ANOVA results. Interaction effect is observed.
+```
+
+```{r}
+TukeyHSD(anova_moisture)
+#Moisture loss is not prevented on day 8 by the treatment. However, moisture loss is significantly curtailed at day 28. Time effect is significant and so is the interaction effect
+```
+
+```{r}
+dt <- ASPext%>%group_by(Time,Treatment)
+  summarise(w=mean(sum_sugar), sd = sd(sum_sugar)) %>%
+  arrange(desc(w))
+```
+
+```{r}
+#Create Barplots for each of the variables requested. Annotations were added manually based on the significance test results of the Tukey test using the geom_signif function from the package ggsignif
+```
+
+
+```{r}
+ggbarplot(ASPext,x='Time',y='sum_sugar',add='mean_se',fill = 'Treatment',color='black',position = position_dodge(0.9),palette = 'paired')+ geom_signif(
+    y_position = c(275), xmin = c(1.8), xmax = c(2.2),
+    annotation = c("***"))+
+  geom_signif(y_position = 400,xmin = 1,xmax=2,annotation='***')
+```       
+
+```{r}
+ggbarplot(ASPext,x='Time',y='ABA_metab',add='mean_se',fill = 'Treatment',color='black',position = position_dodge(0.9),palette = 'paired')+ geom_signif(annotations = c('***'),y_position =c(55000,90000),xmin = c(0.8,1.8),xmax = c(1.2,2.2))+geom_signif(y_position = 100000,xmin = 1,xmax = 2,annotations = '***')
+```
+
+```{r}
+ggbarplot(ASPext,x='Time',y='TSS',add='mean_se',fill = 'Treatment',color='black',position = position_dodge(0.9),palette = 'paired')+ geom_signif(annotations = c('NS','NS'),y_position =c(17,12),xmin = c(0.8,1.8),xmax = c(1.2,2.2))+geom_signif(y_position = 20,xmin = 1,xmax = 2,annotations = '***')
+```
+
+```{r}
+ggbarplot(ASPext,x='Time',y='Moisture.loss',add='mean_se',fill = 'Treatment',color='black',position = position_dodge(0.9),palette = 'paired')+ geom_signif(annotations = c('NS','***'),y_position =c(2,4),xmin = c(0.8,1.8),xmax = c(1.2,2.2))+geom_signif(y_position = 5,xmin = 1,xmax = 2,annotations = '***')
+```
+
+```{r}
+#Create correlation matrix between the four variables requested.Spearman was used as the variables do not seem to be normally distributed...
+cor_matrix=cor(as.matrix(ASPext%>%select(sum_sugar,Fructose,Glucose,Sucrose,TSS)),method = 'spearman')
+```
+
+```{r}
+#Create manual color palette
+col <- colorRampPalette(c("#BB4444", "#4477AA"))
+#Create a visualisation to represent the correlation between the chosen variables using the package corrplot
+corrplot(cor_matrix, type = "upper", order = "hclust",method = 'color',col=col(8),addCoef.col = 'black',tl.cex = .5,tl.col = 'black',diag = F,number.cex = .8)
+```
+
+```{r}
+#Create a summary object for each of the variables against the independent variable TSS. Plot a regression line on the scatterplot and extract the regression equation and R^2 values from the summary object
+```
+
+
+```{r}
+summary=summary(lm(sum_sugar~TSS,data=ASPext))
+p_sum_sugar=ggplot(data=ASPext,aes(x=TSS,y=sum_sugar))+geom_point(alpha=.5)+geom_smooth(se = T,method = 'lm',col='red',linetype='dashed')+labs(title=paste('R_square =',round(summary$r.squared,3),' Regression Equation= ',round(summary$coefficients[1],3),'+',round(summary$coefficients[2],3),'*TSS'))+theme(title = element_text(size=6))
+```
+
+
+```{r}
+summary=summary(lm(Glucose~TSS,data=ASPext))
+p_Glucose=ggplot(data=ASPext,aes(x=TSS,y=Glucose))+geom_point(alpha=.5)+geom_smooth(se = T,method = 'lm',col='red',linetype='dashed')+labs(title=paste('R_square =',round(summary$r.squared,3),' Regression Equation= ',round(summary$coefficients[1],3),'+',round(summary$coefficients[2],3),'*TSS'))+theme(title = element_text(size=6))
+```
+
+```{r}
+summary=summary(lm(Fructose~TSS,data=ASPext))
+p_Fructose=ggplot(data=ASPext,aes(x=TSS,y=Fructose))+geom_point(alpha=.5)+geom_smooth(se = T,method = 'lm',col='red',linetype='dashed')+labs(title=paste('R_square =',round(summary$r.squared,3),' Regression Equation= ',round(summary$coefficients[1],3),'+',round(summary$coefficients[2],3),'*TSS'))+theme(title = element_text(size=6))
+```
+
+
+```{r}
+summary=summary(lm(Sucrose~TSS,data=ASPext))
+p_Sucrose=ggplot(data=ASPext,aes(x=TSS,y=Sucrose))+geom_point(alpha=.5)+geom_smooth(se = T,method = 'lm',col='red',linetype='dashed')+labs(title=paste('R_square =',round(summary$r.squared,3),' Regression Equation= ',round(summary$coefficients[1],3),'+',round(summary$coefficients[2],3),'*TSS'))+theme(title = element_text(size=6))
+```
+
+```{r}
+#Create a grid with the regression plots to visualise them on the same panel and save it as an image.
+png('Regression_Grid.png',width = 7,height = 5,units = 'in',res = 900)
+grid.arrange(p_sum_sugar,p_Fructose,p_Glucose,p_Sucrose,nrow=2,ncol=2)
+dev.off()
+```
+
+
+```{r}
+# plot_regression=function(var){
+#   var=sym(var)
+#   summary=summary(lm(!!var~TSS,data=ASPext))
+#   ggplot(data=ASPext,aes(x=TSS,y=!!var))+geom_point(alpha=.5)+geom_smooth(se = T,method = 'lm',col='red',linetype='dashed')+labs(title=paste('R_square =',round(summary$r.squared,3),' Regression Equation= ',round(summary$coefficients[1],3),'+',round(summary$coefficients[2],3),'*TSS'))}
+```
+
+
+```{r}
+grid.arrange(ggplot(ASPext,aes(x=ABA_metab))+geom_boxplot(),ggplot(ASPext,aes(x=sum_sugar))+geom_boxplot(),ggplot(ASPext,aes(x=TSS))+geom_boxplot(),ggplot(ASPext,aes(x=Moisture.loss))+geom_boxplot(),nrow=2,ncol=2) # 3 outliers on the extreme high end of the ABA_metab variable are found
+```
+
+
+```{r}
+#Create a new column to combine the Time and Treatment factors and create four groups within the data to help visualisaton within plotting 
+ASP_impute=ASP_impute%>%unite('Time&Treatment',c(Time,Treatment),remove = F)
+ASP_impute=ASP_impute%>%mutate_at(vars(`Time&Treatment`),~as.factor(.))
+```
+
+```{r}
+#Create a PCA model on the scaled and centered data. Only the numeric columns of the data were extracted for the model 
+PCA_model=prcomp(x=as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),scale. = T,center = T)
+```
+
+```{r}
+#Visualise the PCA model using functions from the factoextra package
+fviz_pca_biplot(PCA_model,habillage = ASP_impute$`Time&Treatment`,repel = T,alpha.ind = 0.7,addEllipses = T,alpha.var=.5,col.var = 'black')
+```
+
+```{r}
+#Create a screeplot of all the PCs using the factoextra package. Save it in a png file 
+png('Screeplot.png',width = 5,height = 5,units = 'in',res = 800)
+fviz_eig(PCA_model, addlabels = T,ggtheme = theme_minimal(),linecolor = 'red',barcolor = 'black',barfill = NA,font.main=10) 
+dev.off()
+```
+
+```{r}
+#Extract the first two loadings from the PCA model and save them in a dataframe
+loadings=data.frame(PCA_model$rotation[,1:2])
+#Create a new variable 'Variable' from the rownames.
+loadings=loadings%>%rownames_to_column('Variable')
+```
+
+```{r}
+#Change the structure of the dataframe to allow for assigning of aesthetics when plotting.
+loadings=loadings%>%pivot_longer(cols = c(PC1,PC2),names_to = 'PC',values_to ='Loading')
+#Convert the loading of each variable to asbolute values to allow for measuring differences in degree/scale of contribution to each PC
+loadings$Loading=abs(loadings$Loading)
+```
+
+```{r}
+#Create percentages values for the contribution for each loading for each PC
+loadings=loadings%>%group_by(PC)%>%mutate(Loading=Loading/sum(Loading)*100)%>%ungroup()
+```
+
+
+```{r}
+#Create a barplot visualising the differences in degrees of contribution of each variable to each PC and save it as a png file
+png('loadings_plot.png',width = 7,height = 4,units = 'in',res = 800)
+ggbarplot(loadings,x = 'Variable',y = 'Loading',fill = 'PC',position = position_dodge(.9),alpha=.7,font.xtickslab=8,font.ytickslab=10,font.y=8,width = .8,ylab = 'Percentage contribution to each PC',font.x=8)
+dev.off()
+```
+
+```{r}
+#Extrac the first 4 PCs from the PCA model. Compute the scores/'cooridnates' of each sample on these 4 PCs.
+Scores=scale(as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),center = T,scale = T) %*% PCA_model$rotation[,c(1:4)]
+Scores=as.data.frame(Scores)
+rownames(Scores)=ASP_impute$Sample
+```
+
+```{r}
+#Create an object to store the distances between the Samples according to their Scores
+structure <- dist(Scores, method = "manhattan")
+#Create a dendogram 
+hc <- hclust(structure, method = "ward.D")
+dend <- as.dendrogram(hc)
+#Color the branches of the dendogram to most closely represent the grouping observed
+dend <- color_branches(dend, k=4,groupLabels = c('8_AIR','8_DCA','28_DCA','28_AIR'))
+#Label the dendogram leaves according to the group they belong to 
+labels(dend)=ASP_impute$`Time&Treatment`[order.dendrogram(dend)]
+#Set label size
+dend <- set(dend, "labels_cex", 0.5)
+```
+
+```{r}
+#Plot dendograms with different combinations of distance and linkage methods to see which one works best 
+```
+
+
+```{r}
+plot(dend,main =paste('Distance = Eucledian','  ','Linkage = Average'),cex.main=.7)
+```
+
+```{r}
+plot(dend,main =paste('Distance = Eucledian','  ','Linkage = ward.D'),cex.main=.7) #Ward seems to work better as the distances between the clusters according to the y axis values seems to be higher.
+```
+
+```{r}
+plot(dend,main =paste('Distance = Manhattan','  ','Linkage = ward.D'),cex.main=.7) #Ward seems to work better with Manhattan> Aalthought he distance measure does not seem to affect the dissimilarity too much
+```
+
+
+```{r}
+#Create a k_means object on the data using only the numeric variables. 
+k_means=kmeans(as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),centers = 4)
+```
+
+```{r}
+#Create unique sample names so that they can be assigned as rownames for the data. This allows for labelling of the samples when visualising the k-means clustering
+ASP_impute=ASP_impute%>%unite('Unique_Names',c(Time,Sample),sep = '_',remove = F)
+ASP_impute=ASP_impute%>%column_to_rownames('Unique_Names')
+```
+
+```{r}
+#Create a k_means object- but this time on the scaled data
+k_means_scaled=kmeans(scale(as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),center = T,scale = T),centers = 4)
+```
+
+```{r}
+#Visualise the k_means on the raw data using the function from the factoextra package
+fviz_cluster(k_means,data = as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),geom = c('point','text'),ggtheme = theme_bw(),pointsize = .5,alpha=.5,repel = T,)
+```
+
+```{r}
+#Visualise the k_means on the normalized data using the function from the factoextra package
+fviz_cluster(k_means_scaled,data = scale(as.matrix(ASP_impute%>%select(Fructose:Moisture.loss)),center = T,scale = T),geom = c('point','text'),ggtheme = theme_bw(),pointsize = .5,alpha=.5,repel = T)
+```
+
+**Task1 ends**
+
+
+**Task 2**
+
+```{r}
+SNPs=data.frame(read.csv('Data_Assign22/SNPs_22.csv')) #Load the data
+```
+
+```{r}
+SNPs[]=lapply(SNPs,factor) #Convert each column into a factor variable 
+```
+
+```{r}
+res.MCA=MCA(SNPs[,2:31],graph=F,excl = 1) #Create an MCA object from the given data. The first variable, which is the label of the sample, was excluded from the model.
+```
+
+```{r}
+#Visualize the MCA Scores plot using the function from the factoextra package.Points are colored according to their label- which is the 'outcome' variable.
+fviz_mca_ind(res.MCA,habillage = SNPs$BMI,axes = c(1,2)) 
+```
+
+```{r}
+#Visualize the contribution of the top 25 most 'important variables' on a combined Scores and Biplot plot. Uses a function from the factoextra package.Points are colored according to their label- which is the 'outcome' variable
+fviz_mca_biplot(res.MCA, select.var = list(contrib = 25),habillage =SNPs$BMI,repel = T,label = 'var',labelsize=3,col.var='black',pointsize=4,alpha.ind=.8)+theme_minimal()
+```
+
+**Task 2 ends**
